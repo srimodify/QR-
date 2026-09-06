@@ -353,7 +353,7 @@ function renderHist(){
 }
 
 /* ==================== สร้าง QR ==================== */
-function generate(){
+async function generate(){
   const acc = accounts.find(a => a.id === $('#selAcc').value);
   if (!acc) return toast('กรุณาเพิ่มบัญชีรับเงินก่อน');
   const amt = parseFloat($('#inAmt').value) || 0;
@@ -388,6 +388,27 @@ function generate(){
     history_.unshift({ id:uid(), accId:acc.id, name:acc.name, amount:amt,
       time:new Date().toLocaleString('th-TH',{dateStyle:'short',timeStyle:'short'}) });
     history_ = history_.slice(0,50); DB.set('history', history_); renderHist();
+
+    // แสดง QR แบบเต็มจออัตโนมัติหลังจากสร้างเสร็จ
+    setTimeout(async () => {
+      // ล้าง QR เก่า
+      $('#cvFull').innerHTML = '';
+
+      // ใช้ qrcodejs library
+      new QRCode($('#cvFull'), {
+        text: currentPayload,
+        width: 800,
+        height: 800,
+        colorDark : "#000000",
+        colorLight : "#ffffff",
+        correctLevel : QRCode.CorrectLevel.M
+      });
+
+      $('#fAmt').textContent = $('#oAmt').textContent;
+      $('#fName').textContent = $('#oName').textContent;
+      $('#full').style.display = 'flex';
+      try{ wake = await navigator.wakeLock.request('screen') }catch(e){}
+    }, 500); // รอ 500ms เพื่อให้ QR สร้างเสร็จก่อนแสดงเต็มจอ
   } catch (err) {
     console.error('QRCode generation error:', err);
     toast('สร้าง QR ไม่สำเร็จ: ' + err.message);
