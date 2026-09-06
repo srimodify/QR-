@@ -1,5 +1,5 @@
 // ไฟล์: sw.js  (วางไว้โฟลเดอร์เดียวกับ index.html เพื่อให้แอปทำงานออฟไลน์ได้)
-const CACHE = 'qr-promptpay-v2';
+const CACHE = 'qr-promptpay-v4';
 const ASSETS = [
   './',
   './index.html',

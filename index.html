@@ -220,9 +220,28 @@ h3{font-size:15px;margin:0 0 12px}
 
 <div class="toast" id="toast"></div>
 
-<script src="https://unpkg.com/qrcode@1.5.3/build/qrcode.min.js" onerror="this.src='https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js'"></script>
-<script src="https://unpkg.com/jsqr@1.4.0/dist/jsQR.js" onerror="this.src='https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js'"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 <script>
+// ตรวจสอบว่า script โหลดสำเร็จหรือไม่
+console.log('Checking QRCode library...');
+setTimeout(() => {
+  if (typeof QRCode === 'undefined') {
+    console.error('QRCode library failed to load from cdn.jsdelivr.net');
+    // ลองโหลดจาก CDN อื่น
+    const fallbackScript = document.createElement('script');
+    fallbackScript.src = 'https://unpkg.com/qrcode@1.5.3/build/qrcode.min.js';
+    fallbackScript.onload = () => {
+      console.log('QRCode library loaded from fallback CDN (unpkg.com)');
+      location.reload(); // รีโหลดหน้าเว็บเพื่อใช้ library ใหม่
+    };
+    fallbackScript.onerror = () => console.error('QRCode library failed to load from fallback CDN');
+    document.head.appendChild(fallbackScript);
+  } else {
+    console.log('QRCode library loaded successfully from cdn.jsdelivr.net');
+  }
+}, 100);
+
 /* ==================== ตัวช่วยพื้นฐาน ==================== */
 const $ = s => document.querySelector(s);
 const DB = {
