@@ -70,16 +70,17 @@ nav button.on{color:var(--pri);font-weight:700}
 
 /* Modal Pop-up สไตล์ใหม่ - ปรับปรุงให้สวยงาม */
 #full{
-  position:fixed;inset:0;
-  background:linear-gradient(135deg, rgba(15, 23, 42, 0.85) 0%, rgba(30, 41, 59, 0.9) 100%);
-  backdrop-filter:blur(12px);
-  -webkit-backdrop-filter:blur(12px);
-  z-index:99;
-  display:none;
-  align-items:center;
-  justify-content:center;
-  padding:20px;
-  animation:fadeIn 0.3s ease-out;
+  position:fixed !important;
+  inset:0 !important;
+  background:linear-gradient(135deg, rgba(15, 23, 42, 0.85) 0%, rgba(30, 41, 59, 0.9) 100%) !important;
+  backdrop-filter:blur(12px) !important;
+  -webkit-backdrop-filter:blur(12px) !important;
+  z-index:99 !important;
+  display:none !important;
+  align-items:center !important;
+  justify-content:center !important;
+  padding:20px !important;
+  animation:fadeIn 0.3s ease-out !important;
 }
 .full-card{
   position:relative;
@@ -202,7 +203,7 @@ h3{font-size:15px;margin:0 0 12px}
         <button class="btn ghost" id="btnSave">💾 บันทึกรูป</button>
         <button class="btn ghost" id="btnShare">📤 แชร์</button>
       </div>
-      <button class="btn ok" id="btnFull" style="margin-top:8px">🔍 แสดงสแกนเต็มหน้าจอ</button>
+      <button class="btn ok" id="btnFull" style="margin-top:8px">🔍 แสดง Pop-up ให้สแกน</button>
       <p class="muted" style="margin-top:10px">Payload: <span id="oPay" style="word-break:break-all"></span></p>
     </div>
 
@@ -215,7 +216,7 @@ h3{font-size:15px;margin:0 0 12px}
       <div class="chips" id="chips"></div>
       <div class="row" style="margin-top:12px">
         <button class="btn ghost" id="btnClear">ล้างยอด</button>
-        <button class="btn" id="btnGen">สร้าง QR</button>
+        <button class="btn" id="btnGen">สร้าง QR & แสดง Pop-up</button>
       </div>
     </div>
 
@@ -640,11 +641,11 @@ async function openFull(){
 
   $('#fAmt').textContent = $('#oAmt').textContent;
   $('#fName').textContent = $('#oName').textContent;
-  $('#full').style.display = 'flex';
+  $('#full').style.display = 'flex !important';
   try{ wake = await navigator.wakeLock.request('screen') }catch(e){}
 }
 $('#btnFull').onclick = openFull;
-window.closeFull = () => { $('#full').style.display='none'; if(wake){ wake.release(); wake=null } };
+window.closeFull = () => { $('#full').style.display='none !important'; if(wake){ wake.release(); wake=null } };
 
 /* ==================== Settings ==================== */
 $('#btnSetSave').onclick = () => {
