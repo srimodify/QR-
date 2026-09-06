@@ -50,7 +50,7 @@ input:focus,select:focus{border-color:var(--pri2)}
   background:var(--bg);font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;color:var(--txt)}
 .chip.on{background:var(--pri);color:#fff;border-color:var(--pri)}
 .qrbox{text-align:center;padding:20px;background:#fff;border-radius:var(--radius)}
-.qrbox canvas{width:100%;max-width:280px;height:auto;image-rendering:pixelated}
+.qrbox img, .qrbox canvas{width:100%;max-width:280px;height:auto;margin:0 auto;display:block;image-rendering:pixelated}
 .amt{font-size:30px;font-weight:700;color:#0f172a;margin:10px 0 2px}
 .nm{font-size:15px;color:#475569}
 .tag{display:inline-block;font-size:11px;padding:3px 9px;border-radius:999px;
@@ -69,7 +69,7 @@ nav button.on{color:var(--pri);font-weight:700}
 .hide{display:none!important}
 #full{position:fixed;inset:0;background:#fff;z-index:99;display:none;
   flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:20px}
-#full canvas{width:min(88vw,420px);height:auto}
+#full img, #full canvas{width:min(88vw,420px);height:auto}
 .muted{font-size:12px;color:var(--sub);line-height:1.7}
 .toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%);background:#0f172a;
   color:#fff;padding:11px 18px;border-radius:999px;font-size:14px;z-index:120;opacity:0;
@@ -103,7 +103,7 @@ h3{font-size:15px;margin:0 0 12px}
 
     <div class="card hide" id="cardQR">
       <div class="qrbox">
-        <canvas id="cv"></canvas>
+        <div id="cv"></div>
         <div class="amt" id="oAmt">฿0.00</div>
         <div class="nm" id="oName"></div>
         <div style="margin-top:8px"><span class="tag" id="oType">พร้อมเพย์</span></div>
@@ -212,7 +212,7 @@ h3{font-size:15px;margin:0 0 12px}
 </nav>
 
 <div id="full">
-  <canvas id="cvFull"></canvas>
+  <div id="cvFull"></div>
   <div class="amt" id="fAmt"></div>
   <div class="nm" id="fName"></div>
   <button class="btn ghost" style="max-width:220px" onclick="closeFull()">ปิด</button>
@@ -223,17 +223,6 @@ h3{font-size:15px;margin:0 0 12px}
 <script src="qrcode.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 <script>
-// ตรวจสอบว่า script โหลดสำเร็จหรือไม่
-console.log('Checking QRCode library...');
-setTimeout(() => {
-  if (typeof QRCode === 'undefined') {
-    console.error('QRCode library failed to load from local file');
-  } else {
-    console.log('QRCode library loaded successfully from local file');
-  }
-}, 100);
-
-/* ==================== ตัวช่วยพื้นฐาน ==================== */
 const $ = s => document.querySelector(s);
 const DB = {
   get(k, d){ try{ return JSON.parse(localStorage.getItem(k)) ?? d }catch(e){ return d } },
@@ -250,7 +239,7 @@ function buzz(){ if(navigator.vibrate) navigator.vibrate(12) }
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
 const money = n => Number(n||0).toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2});
 
-/* ==================== แกนหลัก: EMVCo / PromptPay ==================== */
+/* ==================== EMVCo / PromptPay Core ==================== */
 function crc16(str){
   let crc = 0xFFFF;
   for (let i=0;i<str.length;i++){
@@ -261,18 +250,17 @@ function crc16(str){
 }
 const f = (id, val) => id + String(val.length).padStart(2,'0') + val;
 
-// แปลงหมายเลขตามประเภท
 function normalize(type, val, bank){
   const d = (val||'').replace(/\D/g,'');
-  if (type === '01'){                              // เบอร์มือถือ -> 0066xxxxxxxxx
+  if (type === '01'){
     let p = d.replace(/^0+/,'');
     if (p.length === 9) return '0066' + p;
     if (d.length === 13 && d.startsWith('0066')) return d;
     return '0066' + p.slice(-9);
   }
-  if (type === '02') return d.padStart(13,'0');     // บัตรประชาชน 13 หลัก
-  if (type === '03') return d.padStart(15,'0');     // e-Wallet 15 หลัก
-  if (type === '04') return (bank||'').replace(/\D/g,'').padStart(3,'0') + d; // ธนาคาร
+  if (type === '02') return d.padStart(13,'0');
+  if (type === '03') return d.padStart(15,'0');
+  if (type === '04') return (bank||'').replace(/\D/g,'').padStart(3,'0') + d;
   return d;
 }
 
@@ -281,9 +269,9 @@ function buildPayload(acc, amount){
   const merchant = f('00','A000000677010111') + f(acc.type, value);
   let p = '';
   p += f('00','01');
-  p += f('01', amount ? '12' : '11');   // 11 = ใช้ซ้ำได้ / 12 = ใช้ครั้งเดียว (มียอด)
+  p += f('01', amount ? '12' : '11');
   p += f('29', merchant);
-  p += f('53','764');                   // THB
+  p += f('53','764');
   if (amount) p += f('54', Number(amount).toFixed(2));
   p += f('58','TH');
   p += '6304';
@@ -310,11 +298,11 @@ function parsePayload(s){
   if (!type) throw new Error('ไม่พบหมายเลขพร้อมเพย์ใน QR นี้');
   let display = val, bank = '';
   if (type === '01' && val.startsWith('0066')) display = '0' + val.slice(4);
-  if (type === '04'){ bank = val.slice(0,3); display = val.slice(3); } // แยกรหัสธนาคาร 3 หลักออกจากเลขบัญชี
+  if (type === '04'){ bank = val.slice(0,3); display = val.slice(3); }
   return { type, val:display, bank, amount: root['54'] || '', raw:s };
 }
 
-/* ==================== การแสดงผล ==================== */
+/* ==================== Rendering ==================== */
 const TYPE_TXT = {'01':'เบอร์มือถือ','02':'บัตรประชาชน','03':'e-Wallet','04':'บัญชีธนาคาร'};
 
 function renderAccounts(){
@@ -350,12 +338,9 @@ function renderHist(){
   const displayHistory = showMore ? history_.slice(0, showCount) : history_;
 
   let histHTML = history_.length ? displayHistory.map(h=>`
-    <div class="item" onclick="reuse('${h.id}')" style="cursor:pointer">
-      <div class="g">
-        <div class="hist-qr" id="qr-${h.id}" style="width:60px;height:60px;background:#fff;border-radius:8px;margin-bottom:8px"></div>
-        <b>฿${money(h.amount)}</b><small>${h.name} · ${h.time}</small>
-      </div>
-      <span>↩️</span>
+    <div class="item" onclick="showHistoryQR('${h.id}')" style="cursor:pointer">
+      <div class="g"><b>฿${money(h.amount)}</b><small>${h.name} · ${h.time}</small></div>
+      <span>📱</span>
     </div>`).join('') : '<p class="muted">ยังไม่มีประวัติ</p>';
 
   if (showMore) {
@@ -363,86 +348,62 @@ function renderHist(){
   }
 
   $('#hist').innerHTML = histHTML;
-
-  // สร้าง QR สำหรับแต่ละรายการประวัติ
-  displayHistory.forEach(h => {
-    const acc = accounts.find(a => a.id === h.accId);
-    if (acc) {
-      const payload = buildPayload(acc, h.amount > 0 ? h.amount : null);
-      try {
-        new QRCode($(`#qr-${h.id}`), {
-          text: payload,
-          width: 60,
-          height: 60,
-          colorDark : "#000000",
-          colorLight : "#ffffff",
-          correctLevel : QRCode.CorrectLevel.L
-        });
-      } catch(e) {
-        console.error('Failed to generate QR for history:', e);
-      }
-    }
-  });
 }
 function showAllHistory(){
   $('#hist').innerHTML = history_.map(h=>`
-    <div class="item" onclick="reuse('${h.id}')" style="cursor:pointer">
-      <div class="g">
-        <div class="hist-qr" id="qr-${h.id}" style="width:60px;height:60px;background:#fff;border-radius:8px;margin-bottom:8px"></div>
-        <b>฿${money(h.amount)}</b><small>${h.name} · ${h.time}</small>
-      </div>
-      <span>↩️</span>
+    <div class="item" onclick="showHistoryQR('${h.id}')" style="cursor:pointer">
+      <div class="g"><b>฿${money(h.amount)}</b><small>${h.name} · ${h.time}</small></div>
+      <span>📱</span>
     </div>`).join('') + `<button class="btn ghost" onclick="renderHist()" style="margin-top:8px">แสดงน้อยลง</button>`;
+}
+function showHistoryQR(id){
+  const h = history_.find(x=>x.id===id);
+  if(!h) return;
 
-  // สร้าง QR สำหรับทุกรายการ
-  history_.forEach(h => {
-    const acc = accounts.find(a => a.id === h.accId);
-    if (acc) {
-      const payload = buildPayload(acc, h.amount > 0 ? h.amount : null);
-      try {
-        new QRCode($(`#qr-${h.id}`), {
-          text: payload,
-          width: 60,
-          height: 60,
-          colorDark : "#000000",
-          colorLight : "#ffffff",
-          correctLevel : QRCode.CorrectLevel.L
-        });
-      } catch(e) {
-        console.error('Failed to generate QR for history:', e);
-      }
-    }
+  const acc = accounts.find(a => a.id === h.accId);
+  if(!acc) return;
+
+  const payload = buildPayload(acc, h.amount > 0 ? h.amount : null);
+  currentPayload = payload;
+
+  // แสดง QR แบบเต็มจอ
+  $('#cvFull').innerHTML = '';
+  new QRCode($('#cvFull'), {
+    text: payload,
+    width: 800,
+    height: 800,
+    colorDark : "#000000",
+    colorLight : "#ffffff",
+    correctLevel : QRCode.CorrectLevel.M
   });
+
+  $('#fAmt').textContent = h.amount > 0 ? '฿'+money(h.amount) : 'ไม่ระบุจำนวนเงิน';
+  $('#fName').textContent = acc.name + ' · ' + acc.val;
+  $('#full').style.display = 'flex';
+  try{ navigator.wakeLock.request('screen').then(w => wake = w).catch(() => {}) }catch(e){}
 }
 
-/* ==================== สร้าง QR ==================== */
-async function generate(){
+/* ==================== Generate QR ==================== */
+function generate(){
   const acc = accounts.find(a => a.id === $('#selAcc').value);
   if (!acc) return toast('กรุณาเพิ่มบัญชีรับเงินก่อน');
   const amt = parseFloat($('#inAmt').value) || 0;
   currentPayload = buildPayload(acc, amt > 0 ? amt : null);
 
-  // ตรวจสอบว่า QRCode library โหลดแล้วหรือยัง
-  if (typeof QRCode === 'undefined') {
-    console.error('QRCode library not loaded');
-    return toast('QRCode library ยังไม่โหลด กรุณารีเฟรชหน้าเว็บ');
-  }
+  if (typeof QRCode === 'undefined') return toast('QRCode library ยังไม่โหลด กรุณารีเฟรชหน้าเว็บ');
 
-  // ล้าง QR เก่า
   $('#cv').innerHTML = '';
 
   try {
-    // ใช้ qrcodejs library (API แบบเก่า)
     new QRCode($('#cv'), {
       text: currentPayload,
-      width: 560,
-      height: 560,
+      width: 280,
+      height: 280,
       colorDark : "#000000",
       colorLight : "#ffffff",
       correctLevel : QRCode.CorrectLevel.M
     });
 
-    console.log('QR generated successfully');
     $('#cardQR').classList.remove('hide');
     $('#oAmt').textContent = amt > 0 ? '฿'+money(amt) : 'ไม่ระบุจำนวนเงิน';
     $('#oName').textContent = acc.name + ' · ' + acc.val;
@@ -451,29 +412,7 @@ async function generate(){
     history_.unshift({ id:uid(), accId:acc.id, name:acc.name, amount:amt,
       time:new Date().toLocaleString('th-TH',{dateStyle:'short',timeStyle:'short'}) });
     history_ = history_.slice(0,50); DB.set('history', history_); renderHist();
-
-    // แสดง QR แบบเต็มจออัตโนมัติหลังจากสร้างเสร็จ
-    setTimeout(async () => {
-      // ล้าง QR เก่า
-      $('#cvFull').innerHTML = '';
-
-      // ใช้ qrcodejs library
-      new QRCode($('#cvFull'), {
-        text: currentPayload,
-        width: 800,
-        height: 800,
-        colorDark : "#000000",
-        colorLight : "#ffffff",
-        correctLevel : QRCode.CorrectLevel.M
-      });
-
-      $('#fAmt').textContent = $('#oAmt').textContent;
-      $('#fName').textContent = $('#oName').textContent;
-      $('#full').style.display = 'flex';
-      try{ wake = await navigator.wakeLock.request('screen') }catch(e){}
-    }, 500); // รอ 500ms เพื่อให้ QR สร้างเสร็จก่อนแสดงเต็มจอ
   } catch (err) {
-    console.error('QRCode generation error:', err);
     toast('สร้าง QR ไม่สำเร็จ: ' + err.message);
   }
 }
@@ -483,7 +422,7 @@ function reuse(id){
   generate(); window.scrollTo({top:0,behavior:'smooth'});
 }
 
-/* ==================== บัญชี ==================== */
+/* ==================== Accounts ==================== */
 $('#accType').onchange = e => $('#bankWrap').classList.toggle('hide', e.target.value !== '04');
 $('#btnAccSave').onclick = () => {
   const name = $('#accName').value.trim(), val = $('#accVal').value.trim();
@@ -509,7 +448,7 @@ window.delAcc = id => { if(!confirm('ลบบัญชีนี้ใช่ห�
   accounts = accounts.filter(a=>a.id!==id); DB.set('accounts',accounts);
   renderAccounts(); toast('ลบแล้ว'); };
 
-/* ==================== นำเข้า QR ==================== */
+/* ==================== Import ==================== */
 function applyImport(r, src){
   const acc = { id:uid(), name:'นำเข้าจาก'+src, type:r.type, val:r.val, bank:r.bank||'' };
   accounts.push(acc); DB.set('accounts', accounts); DB.set('defaultAcc', acc.id);
@@ -559,18 +498,14 @@ function stopCam(){ clearInterval(scanTimer); if(stream) stream.getTracks().forE
   $('#vid').style.display='none'; stream=null; }
 $('#btnCamStop').onclick = stopCam;
 
-/* ==================== บันทึก / แชร์ / เต็มจอ ==================== */
+/* ==================== Export / Save / Share ==================== */
 async function composeImage(){
   try{ await document.fonts.load('bold 52px "Noto Sans Thai"');
        await document.fonts.load('34px "Noto Sans Thai"');
        await document.fonts.ready; }catch(e){}
 
-  // หา canvas element ที่ qrcodejs สร้างขึ้น
-  const src = $('#cv').querySelector('canvas');
-  if (!src) {
-    console.error('No canvas found in QR container');
-    return null;
-  }
+  const qrElem = $('#cv').querySelector('canvas') || $('#cv').querySelector('img');
+  if (!qrElem) return null;
 
   const out = document.createElement('canvas');
   out.width = 720; out.height = 900;
@@ -579,7 +514,7 @@ async function composeImage(){
   x.fillStyle = '#1d4ed8'; x.fillRect(0,0,720,90);
   x.fillStyle = '#fff'; x.font = 'bold 34px "Noto Sans Thai",sans-serif'; x.textAlign='center';
   x.fillText('สแกนเพื่อจ่ายเงิน', 360, 58);
-  x.drawImage(src, 100, 130, 520, 520);
+  x.drawImage(qrElem, 100, 130, 520, 520);
   x.fillStyle = '#0f172a'; x.font = 'bold 52px "Noto Sans Thai",sans-serif';
   x.fillText($('#oAmt').textContent, 360, 740);
   x.fillStyle = '#475569'; x.font = '26px "Noto Sans Thai",sans-serif';
@@ -607,14 +542,11 @@ $('#btnShare').onclick = async () => {
 };
 let wake = null;
 $('#btnFull').onclick = async () => {
-  // ล้าง QR เก่า
   $('#cvFull').innerHTML = '';
-
-  // ใช้ qrcodejs library
   new QRCode($('#cvFull'), {
     text: currentPayload,
-    width: 800,
-    height: 800,
+    width: 320,
+    height: 320,
     colorDark : "#000000",
     colorLight : "#ffffff",
     correctLevel : QRCode.CorrectLevel.M
@@ -627,7 +559,7 @@ $('#btnFull').onclick = async () => {
 };
 window.closeFull = () => { $('#full').style.display='none'; if(wake){ wake.release(); wake=null } };
 
-/* ==================== ตั้งค่า ==================== */
+/* ==================== Settings ==================== */
 $('#btnSetSave').onclick = () => {
   const arr = $('#setChips').value.split(',').map(v=>parseFloat(v.trim())).filter(v=>v>0);
   if (!arr.length) return toast('กรอกตัวเลขอย่างน้อย 1 ค่า');
@@ -649,14 +581,14 @@ $('#fileJSON').onchange = e => { const r = new FileReader();
 $('#btnReset').onclick = () => { if(confirm('ล้างข้อมูลทั้งหมดในเครื่องใช่หรือไม่?')){
   localStorage.clear(); location.reload(); } };
 
-/* ==================== ธีม / แท็บ / PWA ==================== */
+/* ==================== Theme & Navigation ==================== */
 function applyTheme(){ document.documentElement.dataset.theme = settings.theme;
   $('#btnTheme').textContent = settings.theme === 'dark' ? '☀️' : '🌙'; }
 $('#btnTheme').onclick = () => { settings.theme = settings.theme==='dark'?'light':'dark';
   DB.set('settings',settings); applyTheme(); };
 document.querySelectorAll('nav button').forEach(b => b.onclick = () => {
   buzz();
-  if (b.dataset.p !== 'imp') stopCam(); // ออกจากแท็บนำเข้า ให้ปิดกล้องอัตโนมัติ
+  if (b.dataset.p !== 'imp') stopCam();
   document.querySelectorAll('nav button').forEach(x=>x.classList.remove('on'));
   b.classList.add('on');
   ['gen','acc','imp','set'].forEach(p => $('#p-'+p).classList.toggle('hide', p !== b.dataset.p));
@@ -668,10 +600,6 @@ $('#btnClear').onclick = () => { $('#inAmt').value='';
   $('#chips').querySelectorAll('.chip').forEach(x=>x.classList.remove('on')); generate(); };
 $('#selAcc').onchange = e => DB.set('defaultAcc', e.target.value);
 
-// ไอคอนและ manifest ใช้ไฟล์จริง (icon.png / manifest.json) ที่วางไว้โฟลเดอร์เดียวกัน
-// ทำให้ระบบติดตั้ง (Add to Home Screen) ทั้ง Android/Chrome และ iOS/Safari อ่านไอคอนได้ถูกต้องแน่นอน
-// (ลิงก์ <link rel="manifest">, <link rel="icon">, <link rel="apple-touch-icon"> อยู่ใน <head> ด้านบนแล้ว)
-
 let deferred = null;
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e;
   $('#btnInstall').style.display='block'; });
@@ -679,7 +607,7 @@ $('#btnInstall').onclick = async () => { if(!deferred) return; deferred.prompt()
   $('#btnInstall').style.display='none'; };
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
 
-/* ==================== เริ่มทำงาน ==================== */
+/* ==================== Init ==================== */
 applyTheme(); renderAccounts(); renderChips(); renderHist();
 </script>
 </body>
