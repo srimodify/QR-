@@ -68,7 +68,7 @@ nav button.on{color:var(--pri);font-weight:700}
 .item b{display:block;font-size:15px} .item small{color:var(--sub);font-size:12px}
 .hide{display:none!important}
 
-/* Modal Pop-up สไตล์ใหม่ - ปรับปรุงให้สวยงาม */
+/* Modal Pop-up สไตล์ใหม่ */
 #full{
   position:fixed !important;
   inset:0 !important;
@@ -76,11 +76,14 @@ nav button.on{color:var(--pri);font-weight:700}
   backdrop-filter:blur(12px) !important;
   -webkit-backdrop-filter:blur(12px) !important;
   z-index:99 !important;
-  display:none !important;
+  display:none;
   align-items:center !important;
   justify-content:center !important;
   padding:20px !important;
   animation:fadeIn 0.3s ease-out !important;
+}
+#full.show{
+  display:flex !important;
 }
 .full-card{
   position:relative;
@@ -160,6 +163,7 @@ nav button.on{color:var(--pri);font-weight:700}
   border-radius:999px;
   box-shadow:0 4px 15px rgba(59, 130, 246, 0.4);
   transition:all 0.2s ease;
+  color: #fff;
 }
 .full-card .btn:hover{
   transform:translateY(-2px);
@@ -173,10 +177,40 @@ nav button.on{color:var(--pri);font-weight:700}
 @keyframes popIn { from{transform:scale(0.8);opacity:0} to{transform:scale(1);opacity:1} }
 
 .muted{font-size:12px;color:var(--sub);line-height:1.7}
-.toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%);background:#0f172a;
-  color:#fff;padding:11px 18px;border-radius:999px;font-size:14px;z-index:120;opacity:0;
-  transition:.25s;pointer-events:none}
-.toast.show{opacity:1}
+
+/* ดีไซน์แจ้งเตือนใหม่ */
+.toast-container {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: none;
+}
+.toast-msg {
+  background: #1e293b;
+  color: #fff;
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  animation: slideDown 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards,
+             fadeOut 0.3s ease-out 2.5s forwards;
+}
+.toast-msg.success { border-left: 4px solid var(--ok); }
+.toast-msg.error { border-left: 4px solid var(--danger); }
+.toast-msg.info { border-left: 4px solid var(--pri2); }
+
+@keyframes slideDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fadeOut { from { opacity: 1; } to { opacity: 0; display: none; } }
+
 h3{font-size:15px;margin:0 0 12px}
 </style>
 </head>
@@ -187,6 +221,8 @@ h3{font-size:15px;margin:0 0 12px}
   <button class="iconbtn" id="btnTheme" title="สลับธีม">🌙</button>
   <button class="iconbtn" id="btnInstall" style="display:none" title="ติดตั้งแอป">⬇️</button>
 </header>
+
+<div class="toast-container" id="toastArea"></div>
 
 <main>
   <!-- ============ หน้าสร้าง QR ============ -->
@@ -220,9 +256,13 @@ h3{font-size:15px;margin:0 0 12px}
       </div>
     </div>
 
-    <!-- ประวัติการสร้าง -->
-    <div class="card" id="cardHist">
-      <h3>🕘 ประวัติล่าสุด</h3>
+  </section>
+
+  <!-- ============ หน้าประวัติ ============ -->
+  <section id="p-hist" class="hide">
+    <div class="card">
+      <h3>🕘 ประวัติการสร้าง QR</h3>
+      <p class="muted">ประวัติจะถูกบันทึกเมื่อกดปุ่ม "สร้าง QR" เท่านั้น</p>
       <div id="hist"></div>
     </div>
   </section>
@@ -298,19 +338,12 @@ h3{font-size:15px;margin:0 0 12px}
       <input type="file" accept="application/json" id="fileJSON" class="hide">
       <button class="btn red" id="btnReset" style="margin-top:8px">ล้างข้อมูลทั้งหมด</button>
     </div>
-    <div class="card">
-      <h3>ℹ️ เกี่ยวกับ</h3>
-      <p class="muted">
-        QR รับเงิน v1.0 · สร้าง QR ตามมาตรฐาน EMVCo / PromptPay ของธนาคารแห่งประเทศไทย<br>
-        ข้อมูลทั้งหมดเก็บไว้ในเครื่องของคุณเท่านั้น ไม่มีการส่งออกไปเซิร์ฟเวอร์ใด ๆ<br>
-        ⚠️ กรุณาตรวจสอบชื่อผู้รับในแอปธนาคารก่อนโอนทุกครั้ง
-      </p>
-    </div>
   </section>
 </main>
 
 <nav>
   <button data-p="gen" class="on"><i>🏠</i>สร้าง QR</button>
+  <button data-p="hist"><i>🕘</i>ประวัติ</button>
   <button data-p="acc"><i>📒</i>บัญชี</button>
   <button data-p="imp"><i>📥</i>นำเข้า</button>
   <button data-p="set"><i>⚙️</i>ตั้งค่า</button>
@@ -327,10 +360,8 @@ h3{font-size:15px;margin:0 0 12px}
   </div>
 </div>
 
-<div class="toast" id="toast"></div>
 
-<!-- ตัวอย่างการใส่เวอร์ชันต่อท้ายไฟล์สคริปต์ -->
-<script src="qrcode.min.js?v=2"></script>
+<script src="https://cdn.jsdelivr.net/gh/davidshimjs/qrcodejs/qrcode.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 <script>
 const $ = s => document.querySelector(s);
@@ -343,8 +374,50 @@ let history_ = DB.get('history', []);
 let settings = DB.get('settings', { chips:[20,50,100,200,500,1000], theme:'light' });
 let currentPayload = '';
 
-function toast(m){ const t=$('#toast'); t.textContent=m; t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'),1900); }
+/* ==================== Notification Functions ==================== */
+function playSound() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(880, ctx.currentTime);
+    gain.gain.setValueAtTime(0.05, ctx.currentTime);
+    osc.start();
+    gain.gain.exponentialRampToValueAtTime(0.00001, ctx.currentTime + 0.15);
+    osc.stop(ctx.currentTime + 0.15);
+  } catch(e) {}
+}
+
+function toast(m, type = 'info', useSound = false) {
+  if (useSound) playSound();
+  const area = $('#toastArea');
+  const msg = document.createElement('div');
+  msg.className = `toast-msg ${type}`;
+  
+  let icon = 'ℹ️';
+  if(type === 'success') icon = '✅';
+  if(type === 'error') icon = '⚠️';
+  
+  msg.innerHTML = `<span>${icon}</span> <span>${m}</span>`;
+  area.appendChild(msg);
+  
+  setTimeout(() => {
+    if (msg.parentNode) msg.parentNode.removeChild(msg);
+  }, 3000);
+}
+
+function notify(m, type = 'success') {
+  toast(m, type, true);
+  if ('Notification' in window && Notification.permission === 'granted') {
+    new Notification('QR รับเงิน', { body: m, icon: 'icon.png' });
+  } else if ('Notification' in window && Notification.permission !== 'denied') {
+    Notification.requestPermission();
+  }
+}
+
 function buzz(){ if(navigator.vibrate) navigator.vibrate(12) }
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
 const money = n => Number(n||0).toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -388,37 +461,13 @@ function buildPayload(acc, amount){
   return p + crc16(p);
 }
 
-function parseTLV(s){
-  const out = {}; let i = 0;
-  while (i + 4 <= s.length){
-    const id = s.substr(i,2), len = parseInt(s.substr(i+2,2),10);
-    if (isNaN(len)) break;
-    out[id] = s.substr(i+4,len); i += 4 + len;
-  }
-  return out;
-}
-function parsePayload(s){
-  s = (s||'').trim().replace(/\s/g,'');
-  if (!s.startsWith('0002')) throw new Error('ไม่ใช่ QR มาตรฐาน EMVCo');
-  const root = parseTLV(s);
-  const box = root['29'] || root['30'] || '';
-  const sub = parseTLV(box);
-  let type = null, val = null;
-  ['01','02','03','04'].forEach(t => { if (sub[t] && !type){ type = t; val = sub[t] } });
-  if (!type) throw new Error('ไม่พบหมายเลขพร้อมเพย์ใน QR นี้');
-  let display = val, bank = '';
-  if (type === '01' && val.startsWith('0066')) display = '0' + val.slice(4);
-  if (type === '04'){ bank = val.slice(0,3); display = val.slice(3); }
-  return { type, val:display, bank, amount: root['54'] || '', raw:s };
-}
-
 /* ==================== Rendering ==================== */
 const TYPE_TXT = {'01':'เบอร์มือถือ','02':'บัตรประชาชน','03':'e-Wallet','04':'บัญชีธนาคาร'};
 
 function renderAccounts(){
   $('#selAcc').innerHTML = accounts.length
     ? accounts.map(a=>`<option value="${a.id}">${a.name} — ${a.val}</option>`).join('')
-    : '<option value="">— ยังไม่มีบัญชี กรุณาเพิ่มที่แท็บ "บัญชี" —</option>';
+    : '<option value="">— ยังไม่มีบัญชี กรุณาเพิ่มบัญชี —</option>';
   const def = DB.get('defaultAcc','');
   if (def && accounts.some(a=>a.id===def)) $('#selAcc').value = def;
 
@@ -438,35 +487,35 @@ function renderChips(){
   $('#chips').querySelectorAll('.chip').forEach(c => c.onclick = () => {
     buzz(); $('#inAmt').value = c.dataset.v;
     $('#chips').querySelectorAll('.chip').forEach(x=>x.classList.remove('on'));
-    c.classList.add('on'); 
-    
-    if (generate()) {
-      openFull();
-    }
+    c.classList.add('on');
   });
   $('#setChips').value = settings.chips.join(',');
 }
 
 function renderHist(){
-  $('#hist').innerHTML = history_.length ? history_.slice(0,8).map(h=>`
-    <div class="item" onclick="reuse('${h.id}')" style="cursor:pointer">
-      <div class="g"><b>฿${money(h.amount)}</b><small>${h.name} · ${h.time}</small></div>
-      <span>↩️</span>
+  $('#hist').innerHTML = history_.length ? history_.slice(0,10).map(h=>`
+    <div class="item" onclick="reuse('${h.id}')" style="cursor:pointer" title="กดเพื่อเรียกใช้ยอดนี้อีกครั้ง">
+      <div class="g">
+        <b style="color:var(--pri)">฿${money(h.amount)}</b>
+        <small>${h.name} · ${h.time}</small>
+      </div>
+      <span style="font-size:20px; color:var(--pri2)">↩️</span>
     </div>`).join('') : '<p class="muted">ยังไม่มีประวัติ</p>';
 }
 
 /* ==================== Generate QR ==================== */
-function generate(){
+// เพิ่มพารามิเตอร์ saveHistory เพื่อแยกว่าแค่เรียกดูซ้ำ หรือสร้างใหม่จริงๆ
+function generate(saveHistory = true){
   const acc = accounts.find(a => a.id === $('#selAcc').value);
   if (!acc) {
-    toast('กรุณาเพิ่มบัญชีรับเงินก่อน');
+    toast('กรุณาเพิ่มบัญชีรับเงินก่อน', 'error');
     return false;
   }
   const amt = parseFloat($('#inAmt').value) || 0;
   currentPayload = buildPayload(acc, amt > 0 ? amt : null);
 
   if (typeof QRCode === 'undefined') {
-    toast('QRCode library ยังไม่โหลด กรุณารีเฟรชหน้าเว็บ');
+    toast('รอสักครู่ ระบบกำลังโหลด Library', 'info');
     return false;
   }
 
@@ -487,22 +536,32 @@ function generate(){
     $('#oName').textContent = acc.name + ' · ' + acc.val;
     $('#oType').textContent = TYPE_TXT[acc.type];
     $('#oPay').textContent  = currentPayload;
-    
-    history_.unshift({ id:uid(), accId:acc.id, name:acc.name, amount:amt,
-      time:new Date().toLocaleString('th-TH',{dateStyle:'short',timeStyle:'short'}) });
-    history_ = history_.slice(0,50); DB.set('history', history_); renderHist();
+
+    // บันทึกประวัติ "เฉพาะ" เมื่อถูกสั่งให้บันทึก (กดปุ่มสร้าง)
+    if (saveHistory) {
+      history_.unshift({ id:uid(), accId:acc.id, name:acc.name, amount:amt,
+        time:new Date().toLocaleString('th-TH',{dateStyle:'short',timeStyle:'short'}) });
+      history_ = history_.slice(0,50); DB.set('history', history_); 
+      renderHist();
+      notify('สร้าง QR และบันทึกประวัติสำเร็จ', 'success');
+    }
+
     return true;
   } catch (err) {
-    toast('สร้าง QR ไม่สำเร็จ: ' + err.message);
+    toast('สร้าง QR ไม่สำเร็จ: ' + err.message, 'error');
     return false;
   }
 }
 
 function reuse(id){
   const h = history_.find(x=>x.id===id); if(!h) return;
-  $('#selAcc').value = h.accId; $('#inAmt').value = h.amount || '';
-  if (generate()) {
+  $('#selAcc').value = h.accId; 
+  $('#inAmt').value = h.amount || '';
+  
+  // เรียก generate แต่ "ไม่" ให้บันทึกประวัติซ้ำ
+  if (generate(false)) {
     openFull();
+    toast('เรียกใช้งานประวัติเดิม', 'info');
   }
 }
 
@@ -511,15 +570,13 @@ $('#accType').onchange = e => $('#bankWrap').classList.toggle('hide', e.target.v
 $('#btnAccSave').onclick = () => {
   const name = $('#accName').value.trim(), val = $('#accVal').value.trim();
   const type = $('#accType').value, bank = $('#accBank').value.trim();
-  if (!name || !val) return toast('กรอกชื่อและหมายเลขให้ครบ');
-  if (type === '04' && !/^\d{3}$/.test(bank)) return toast('กรุณากรอกรหัสธนาคาร 3 หลักให้ถูกต้อง');
-  if (type === '01' && val.replace(/\D/g,'').replace(/^0+/,'').length !== 9)
-    return toast('เบอร์โทรศัพท์ต้องมี 9 หลัก (ไม่รวมเลข 0 นำหน้า) เช่น 0812345678');
+  if (!name || !val) return toast('กรอกชื่อและหมายเลขให้ครบ', 'error');
+  if (type === '04' && !/^\d{3}$/.test(bank)) return toast('กรุณากรอกรหัสธนาคาร 3 หลัก', 'error');
   const obj = { id: $('#accId').value || uid(), name, type, val, bank };
   const i = accounts.findIndex(a => a.id === obj.id);
   i >= 0 ? accounts[i] = obj : accounts.push(obj);
   DB.set('accounts', accounts); DB.set('defaultAcc', obj.id);
-  clearAccForm(); renderAccounts(); toast('บันทึกบัญชีแล้ว'); buzz();
+  clearAccForm(); renderAccounts(); toast('บันทึกบัญชีแล้ว', 'success'); buzz();
 };
 function clearAccForm(){ ['accId','accName','accVal','accBank'].forEach(i=>$('#'+i).value='');
   $('#accType').value='01'; $('#bankWrap').classList.add('hide'); }
@@ -527,70 +584,22 @@ $('#btnAccCancel').onclick = clearAccForm;
 window.editAcc = id => { const a = accounts.find(x=>x.id===id); if(!a) return;
   $('#accId').value=a.id; $('#accName').value=a.name; $('#accType').value=a.type;
   $('#accVal').value=a.val; $('#accBank').value=a.bank||'';
-  $('#bankWrap').classList.toggle('hide', a.type!=='04'); window.scrollTo({top:0,behavior:'smooth'}); };
+  $('#bankWrap').classList.toggle('hide', a.type!=='04'); 
+  // ย้ายไปแท็บ บัญชี
+  document.querySelector('nav button[data-p="acc"]').click();
+  window.scrollTo({top:0,behavior:'smooth'}); 
+};
 window.delAcc = id => { if(!confirm('ลบบัญชีนี้ใช่หรือไม่?')) return;
   accounts = accounts.filter(a=>a.id!==id); DB.set('accounts',accounts);
-  renderAccounts(); toast('ลบแล้ว'); };
-
-/* ==================== Import ==================== */
-function applyImport(r, src){
-  const acc = { id:uid(), name:'นำเข้าจาก'+src, type:r.type, val:r.val, bank:r.bank||'' };
-  accounts.push(acc); DB.set('accounts', accounts); DB.set('defaultAcc', acc.id);
-  renderAccounts();
-  $('#impResult').innerHTML = `✅ พบ: <b>${TYPE_TXT[r.type]}</b> ${r.val}
-    ${r.amount ? '· ยอด ฿'+money(r.amount) : ''}<br>เพิ่มเป็นบัญชีเรียบร้อย`;
-  toast('นำเข้าสำเร็จ'); buzz();
-}
-function decodeImageFile(file){
-  const img = new Image();
-  const objUrl = URL.createObjectURL(file);
-  img.onload = () => {
-    URL.revokeObjectURL(objUrl);
-    const c = document.createElement('canvas');
-    c.width = img.width; c.height = img.height;
-    const ctx = c.getContext('2d'); ctx.drawImage(img,0,0);
-    const d = ctx.getImageData(0,0,c.width,c.height);
-    const code = jsQR(d.data, d.width, d.height);
-    if (!code) return toast('อ่าน QR จากรูปไม่สำเร็จ');
-    try { applyImport(parsePayload(code.data), 'รูปภาพ') } catch(e){ toast(e.message) }
-  };
-  img.onerror = () => { URL.revokeObjectURL(objUrl); toast('เปิดไฟล์รูปไม่สำเร็จ') };
-  img.src = objUrl;
-}
-$('#fileQR').onchange = e => e.target.files[0] && decodeImageFile(e.target.files[0]);
-$('#btnParse').onclick = () => {
-  try { applyImport(parsePayload($('#txtPay').value), 'ข้อความ') } catch(e){ toast(e.message) }
-};
-
-let stream = null, scanTimer = null;
-$('#btnCam').onclick = async () => {
-  try{
-    stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
-    const v = $('#vid'); v.srcObject = stream; v.style.display='block'; await v.play();
-    const c = document.createElement('canvas'), ctx = c.getContext('2d');
-    scanTimer = setInterval(()=>{
-      if (v.readyState !== 4) return;
-      c.width = v.videoWidth; c.height = v.videoHeight;
-      ctx.drawImage(v,0,0,c.width,c.height);
-      const d = ctx.getImageData(0,0,c.width,c.height);
-      const code = jsQR(d.data, d.width, d.height);
-      if (code){ stopCam(); try{ applyImport(parsePayload(code.data),'กล้อง') }catch(e){ toast(e.message) } }
-    }, 350);
-  }catch(e){ toast('เปิดกล้องไม่ได้ (ต้องใช้ HTTPS)') }
-};
-function stopCam(){ clearInterval(scanTimer); if(stream) stream.getTracks().forEach(t=>t.stop());
-  $('#vid').style.display='none'; stream=null; }
-$('#btnCamStop').onclick = stopCam;
+  renderAccounts(); toast('ลบแล้ว', 'info'); };
 
 /* ==================== Export / Save / Share ==================== */
 async function composeImage(){
   try{ await document.fonts.load('bold 52px "Noto Sans Thai"');
        await document.fonts.load('34px "Noto Sans Thai"');
        await document.fonts.ready; }catch(e){}
-
   const qrElem = $('#cv').querySelector('canvas') || $('#cv').querySelector('img');
   if (!qrElem) return null;
-
   const out = document.createElement('canvas');
   out.width = 720; out.height = 900;
   const x = out.getContext('2d');
@@ -609,19 +618,19 @@ async function composeImage(){
 }
 $('#btnSave').onclick = async () => {
   const canvas = await composeImage();
-  if (!canvas) return toast('ไม่พบ QR Code กรุณาสร้าง QR ก่อน');
+  if (!canvas) return toast('ไม่พบ QR Code', 'error');
   const a = document.createElement('a');
   a.download = 'qr-promptpay-' + Date.now() + '.png';
-  a.href = canvas.toDataURL('image/png'); a.click(); toast('บันทึกรูปแล้ว');
+  a.href = canvas.toDataURL('image/png'); a.click(); toast('บันทึกรูปภาพแล้ว', 'success');
 };
 $('#btnShare').onclick = async () => {
   const canvas = await composeImage();
-  if (!canvas) return toast('ไม่พบ QR Code กรุณาสร้าง QR ก่อน');
+  if (!canvas) return toast('ไม่พบ QR Code', 'error');
   canvas.toBlob(async b => {
     const file = new File([b], 'qr.png', {type:'image/png'});
     if (navigator.canShare && navigator.canShare({files:[file]}))
       await navigator.share({files:[file], title:'QR รับเงิน'});
-    else toast('อุปกรณ์นี้ไม่รองรับการแชร์ กรุณาใช้บันทึกรูปแทน');
+    else toast('อุปกรณ์นี้ไม่รองรับการแชร์รูป', 'error');
   });
 };
 
@@ -638,20 +647,19 @@ async function openFull(){
     colorLight : "#ffffff",
     correctLevel : QRCode.CorrectLevel.M
   });
-
   $('#fAmt').textContent = $('#oAmt').textContent;
   $('#fName').textContent = $('#oName').textContent;
-  $('#full').style.display = 'flex !important';
+  $('#full').classList.add('show');
   try{ wake = await navigator.wakeLock.request('screen') }catch(e){}
 }
 $('#btnFull').onclick = openFull;
-window.closeFull = () => { $('#full').style.display='none !important'; if(wake){ wake.release(); wake=null } };
+window.closeFull = () => { $('#full').classList.remove('show'); if(wake){ wake.release(); wake=null } };
 
 /* ==================== Settings ==================== */
 $('#btnSetSave').onclick = () => {
   const arr = $('#setChips').value.split(',').map(v=>parseFloat(v.trim())).filter(v=>v>0);
-  if (!arr.length) return toast('กรอกตัวเลขอย่างน้อย 1 ค่า');
-  settings.chips = arr; DB.set('settings', settings); renderChips(); toast('บันทึกแล้ว');
+  if (!arr.length) return toast('กรอกตัวเลขอย่างน้อย 1 ค่า', 'error');
+  settings.chips = arr; DB.set('settings', settings); renderChips(); toast('บันทึกตั้งค่าแล้ว', 'success');
 };
 $('#btnExport').onclick = () => {
   const blob = new Blob([JSON.stringify({accounts, history:history_, settings},null,2)],{type:'application/json'});
@@ -664,8 +672,8 @@ $('#fileJSON').onchange = e => { const r = new FileReader();
     if(d.accounts){ accounts = d.accounts; DB.set('accounts',accounts) }
     if(d.history){ history_ = d.history; DB.set('history',history_) }
     if(d.settings){ settings = d.settings; DB.set('settings',settings) }
-    renderAccounts(); renderChips(); renderHist(); toast('กู้คืนข้อมูลสำเร็จ');
-  }catch(err){ toast('ไฟล์ไม่ถูกต้อง') } }; r.readAsText(e.target.files[0]); };
+    renderAccounts(); renderChips(); renderHist(); toast('กู้คืนข้อมูลสำเร็จ', 'success');
+  }catch(err){ toast('ไฟล์ไม่ถูกต้อง', 'error') } }; r.readAsText(e.target.files[0]); };
 $('#btnReset').onclick = () => { if(confirm('ล้างข้อมูลทั้งหมดในเครื่องใช่หรือไม่?')){
   localStorage.clear(); location.reload(); } };
 
@@ -674,34 +682,34 @@ function applyTheme(){ document.documentElement.dataset.theme = settings.theme;
   $('#btnTheme').textContent = settings.theme === 'dark' ? '☀️' : '🌙'; }
 $('#btnTheme').onclick = () => { settings.theme = settings.theme==='dark'?'light':'dark';
   DB.set('settings',settings); applyTheme(); };
+
 document.querySelectorAll('nav button').forEach(b => b.onclick = () => {
   buzz();
-  if (b.dataset.p !== 'imp') stopCam();
   document.querySelectorAll('nav button').forEach(x=>x.classList.remove('on'));
   b.classList.add('on');
-  ['gen','acc','imp','set'].forEach(p => $('#p-'+p).classList.toggle('hide', p !== b.dataset.p));
+  ['gen','hist','acc','imp','set'].forEach(p => $('#p-'+p).classList.toggle('hide', p !== b.dataset.p));
   window.scrollTo(0,0);
 });
-document.addEventListener('visibilitychange', () => { if (document.hidden) stopCam(); });
 
-// กดปุ่มสร้าง QR / Enter ในช่องกรอกเงิน
+// กดปุ่มสร้าง QR 
 $('#btnGen').onclick = () => { 
   buzz(); 
-  if (generate()) {
+  if (generate(true)) { // (true) คือสั่งให้บันทึกประวัติ
     openFull();
   }
 };
+// กด Enter ในช่องจำนวนเงิน
 $('#inAmt').addEventListener('keypress', (e) => {
   if (e.key === 'Enter') {
     buzz();
-    if (generate()) {
+    if (generate(true)) { 
       openFull();
     }
   }
 });
 
 $('#btnClear').onclick = () => { $('#inAmt').value='';
-  $('#chips').querySelectorAll('.chip').forEach(x=>x.classList.remove('on')); generate(); };
+  $('#chips').querySelectorAll('.chip').forEach(x=>x.classList.remove('on')); };
 $('#selAcc').onchange = e => DB.set('defaultAcc', e.target.value);
 
 let deferred = null;
