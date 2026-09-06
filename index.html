@@ -345,11 +345,74 @@ function renderChips(){
   $('#setChips').value = settings.chips.join(',');
 }
 function renderHist(){
-  $('#hist').innerHTML = history_.length ? history_.slice(0,8).map(h=>`
+  const showCount = 3;
+  const showMore = history_.length > showCount;
+  const displayHistory = showMore ? history_.slice(0, showCount) : history_;
+
+  let histHTML = history_.length ? displayHistory.map(h=>`
     <div class="item" onclick="reuse('${h.id}')" style="cursor:pointer">
-      <div class="g"><b>฿${money(h.amount)}</b><small>${h.name} · ${h.time}</small></div>
+      <div class="g">
+        <div class="hist-qr" id="qr-${h.id}" style="width:60px;height:60px;background:#fff;border-radius:8px;margin-bottom:8px"></div>
+        <b>฿${money(h.amount)}</b><small>${h.name} · ${h.time}</small>
+      </div>
       <span>↩️</span>
     </div>`).join('') : '<p class="muted">ยังไม่มีประวัติ</p>';
+
+  if (showMore) {
+    histHTML += `<button class="btn ghost" onclick="showAllHistory()" style="margin-top:8px">แสดงทั้งหมด (${history_.length} รายการ)</button>`;
+  }
+
+  $('#hist').innerHTML = histHTML;
+
+  // สร้าง QR สำหรับแต่ละรายการประวัติ
+  displayHistory.forEach(h => {
+    const acc = accounts.find(a => a.id === h.accId);
+    if (acc) {
+      const payload = buildPayload(acc, h.amount > 0 ? h.amount : null);
+      try {
+        new QRCode($(`#qr-${h.id}`), {
+          text: payload,
+          width: 60,
+          height: 60,
+          colorDark : "#000000",
+          colorLight : "#ffffff",
+          correctLevel : QRCode.CorrectLevel.L
+        });
+      } catch(e) {
+        console.error('Failed to generate QR for history:', e);
+      }
+    }
+  });
+}
+function showAllHistory(){
+  $('#hist').innerHTML = history_.map(h=>`
+    <div class="item" onclick="reuse('${h.id}')" style="cursor:pointer">
+      <div class="g">
+        <div class="hist-qr" id="qr-${h.id}" style="width:60px;height:60px;background:#fff;border-radius:8px;margin-bottom:8px"></div>
+        <b>฿${money(h.amount)}</b><small>${h.name} · ${h.time}</small>
+      </div>
+      <span>↩️</span>
+    </div>`).join('') + `<button class="btn ghost" onclick="renderHist()" style="margin-top:8px">แสดงน้อยลง</button>`;
+
+  // สร้าง QR สำหรับทุกรายการ
+  history_.forEach(h => {
+    const acc = accounts.find(a => a.id === h.accId);
+    if (acc) {
+      const payload = buildPayload(acc, h.amount > 0 ? h.amount : null);
+      try {
+        new QRCode($(`#qr-${h.id}`), {
+          text: payload,
+          width: 60,
+          height: 60,
+          colorDark : "#000000",
+          colorLight : "#ffffff",
+          correctLevel : QRCode.CorrectLevel.L
+        });
+      } catch(e) {
+        console.error('Failed to generate QR for history:', e);
+      }
+    }
+  });
 }
 
 /* ==================== สร้าง QR ==================== */
