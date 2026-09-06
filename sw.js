@@ -1,11 +1,11 @@
 // ไฟล์: sw.js  (วางไว้โฟลเดอร์เดียวกับ index.html เพื่อให้แอปทำงานออฟไลน์ได้)
-const CACHE = 'qr-promptpay-v4';
+const CACHE = 'qr-promptpay-v5';
 const ASSETS = [
   './',
   './index.html',
   './manifest.json',
   './icon.png',
-  'https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js',
+  './qrcode.min.js',
   'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js'
 ];
 
